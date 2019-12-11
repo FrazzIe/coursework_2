@@ -1,0 +1,72 @@
+- name: Configure Build VM # Name
+  hosts: localhost
+  user: frazzle
+  connection: local # Script to be executed locally
+  vars: # Variables
+  tasks: # Tasks
+    - name: Install required system packages
+      apt: name={{ item }} state=latest update_cache=yes # Loops through and performs apt-get update (update_cache) followed by apt-get install { item } from the array
+      loop: [ 'apt-transport-https', 'ca-certificates', 'curl', 'gnupg-agent', 'software-properties-common' ]
+      become: yes
+    - name: Install aptitude using apt
+      apt: name=aptitude state=latest update_cache=yes force_apt_get=yes # Update all pkgs
+      become: yes
+    - name: Add Docker GPG apt Key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg # curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+        state: present
+      become: yes
+    - name: Add Docker Repository
+      apt_repository:
+        repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable # deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable
+        state: present
+    - name: Update apt and install docker-ce, docker-ce-cli & containerd.io
+      apt: update_cache=yes name={{ item }} state=latest
+      loop: [ 'docker-ce', 'docker-ce-cli', 'containerd.io']
+      become: yes
+    - name: Install Docker Module for Python
+      pip:
+        name: docker
+    - name: Create jenkins container # docker run --rm -d -u root --name jenkins-container -p 8080:8080 -v ~/jenkins-data:/var/jenkins_home -v /var/run/docker.sock:/var/run/docker.sock -v "$HOME":/home jenkinsci/blueocean
+      docker_container:
+        name: jenkins-container
+        image: jenkinsci/blueocean
+        auto_remove: yes
+        detach: yes
+        user: root
+        state: started
+        restart: yes
+        ports:
+          - 8080:8080
+        volumes:
+          - ~/jenkins-data:/var/jenkins_home
+          - /var/run/docker.sock:/var/run/docker.sock
+          - "{{ ansible_env.HOME + ':/home' }}"
+      become: yes
+    - name: Fetch jenkins setup password
+      command: docker exec jenkins-container cat /var/jenkins_home/secrets/initialAdminPassword
+      register: jenkinsPassword
+      become: yes
+    - name: Store jenkins setup password
+      copy:
+        dest: "{{ ansible_env.HOME + '/jenkinspass.txt' }}"
+        content: "{{ jenkinsPassword.stdout }}"
+    - name: Create sonarqube container
+      docker_container:
+        name: sonarqube-container
+        image: sonarqube
+        auto_remove: yes
+        detach: yes
+        state: started
+        restart: yes
+        ports:
+          - 9000:9000
+        volumes:
+          - ~/sonarqube_conf:/opt/sonarqube/conf
+          - ~/sonarqube_extensions:/opt/sonarqube/extensions
+          - ~/sonarqube_logs:/opt/sonarqube/logs
+          - ~/sonarqube_data:/opt/sonarqube/data
+      become: yes
+    - name: Interact with Jenkins container & Download sonar scanner cli
+      command: docker exec -i jenkins-container bash -c 'cd /var/jenkins_home; mkdir sonarqube && cd sonarqube; wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-3.3.0.1492-linux.zip; unzip sonar-scanner-cli-3.3.0.1492-linux.zip; rm /var/jenkins_home/sonarqube/sonar-scanner-3.3.0.1492-linux/jre/bin/java; ln -s /usr/lib/jvm/java-1.8-openjdk/bin/java /var/jenkins_home/sonarqube/sonar-scanner-3.3.0.1492-linux/jre/bin/java'
+      become: yes
