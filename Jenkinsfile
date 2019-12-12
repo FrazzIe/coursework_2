@@ -34,8 +34,8 @@ node {
     }
     stage('Deploy') {
         ansiblePlaybook installation: 'Ansible', playbook: '/playbooks/prod_create.yml'
-        ansiblePlaybook(playbook: "${WORKSPACE}/playbooks/prod_create.yml")
-        //sh "ansible-playbook ${env.WORKSPACE}/playbooks/prod_create.yml"
+        ansiblePlaybook(playbook: '/playbooks/prod_create.yml')
+        sh "/var/jenkins_home/ansible/ansible-playbook ${env.WORKSPACE}/playbooks/prod_create.yml"
         //sh "ansible-playbook -i ~/ansible/azure_rm.py -l cw2prod ${env.WORKSPACE}/playbooks/prod_config.yml"
     }
 }
