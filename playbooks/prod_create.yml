@@ -82,7 +82,7 @@
     - name: Create VM
       azure_rm_virtualmachine:
         resource_group: "{{ resourceGroup }}"
-        name: "{{ myVM }}"
+        name: "{{ vmName }}"
         vm_size: Standard_D2S_v3
         admin_username: cw2prod
         ssh_password_enabled: false
