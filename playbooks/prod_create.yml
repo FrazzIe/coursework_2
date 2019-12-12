@@ -18,6 +18,10 @@
         allocation_method: Static
         name: "{{ vmName }}-ip"
       register: output_ip_address
+    - name: Creates ssh key directory
+      file:
+        path: "{{ ansible_env.HOME }}/.ssh/"
+        state: directory
     - name: Generate SSH Key
       openssh_keypair:
         path: "{{ ansible_env.HOME }}/.ssh/id_rsa"
