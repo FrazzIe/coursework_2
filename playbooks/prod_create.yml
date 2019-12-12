@@ -7,12 +7,12 @@
     vmName: cw2prod
   tasks: # Tasks
     - stat:
-      path: ~/ansible/azure_rm.py
+      path: "{{ ansible_env.HOME }}/azure_rm.py"
       register: azure_rm
     - name: Download Azure Resource Management
       get_url:
         url: https://raw.githubusercontent.com/ansible/ansible/devel/contrib/inventory/azure_rm.py
-        dest: ~/ansible/azure_rm.py
+        dest: "{{ ansible_env.HOME }}/azure_rm.py"
         mode: '0775'
       become: yes
       when: azure_rm.stat.exists == false
