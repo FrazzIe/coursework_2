@@ -28,7 +28,8 @@ node {
     stage('Publish img') {
         echo 'Publishing image to DockerHub'
         docker.withRegistry('https://registry.hub.docker.com', 'docker-hub') { //Authenticate with dockerhub
-            dockerImg.push('latest') //Publish built image
+            dockerImg.push(env.BUILD_ID) //Publish built image (specific tag)
+            dockerImg.push('latest') //Publish built image (latest)
         }
     }
     stage('Deploy') {
