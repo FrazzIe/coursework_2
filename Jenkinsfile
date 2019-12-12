@@ -33,6 +33,7 @@ node {
         }
     }
     stage('Deploy') {
-        echo '<placeholder>'
+        sh "ansible-playbook ${env.WORKSPACE}/playbooks/prod_create.yml"
+        sh "ansible-playbook -i ~/ansible/azure_rm.py -l cw2prod ${env.WORKSPACE}/playbooks/prod_config.yml"
     }
 }
