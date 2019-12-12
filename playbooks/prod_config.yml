@@ -1,0 +1,56 @@
+- name: Configure Production VM # Name
+  hosts: azure # Communicate directly with something hosted on azure
+  user: cw2prod # Virtual Machine username
+  vars: # Variables
+  tasks: # Tasks
+    - name: Install apt-transport-https
+      apt: name=apt-transport-https state=latest update_cache=yes 
+      become: yes
+    - name: Add an apt signing key for Kubernetes
+      apt_key:
+        url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+        state: present
+      become: yes
+    - name: Adding apt repository for Kubernetes
+      apt_repository:
+        repo: deb https://apt.kubernetes.io/ kubernetes-{{ ansible_distribution_release }} main
+        state: present
+        filename: kubernetes.list
+      become: yes
+    - name: Install Kubectl
+      apt: name=kubectl state=present update_cache=yes  
+      become: yes
+    - name: Add an apt signing key for Virtualbox
+      apt_key:
+        url: https://www.virtualbox.org/download/oracle_vbox_2016.asc
+        state: present
+      become: yes
+    - name: Install Virtualbox
+      apt: name=virtualbox state=present update_cache=yes  
+      become: yes
+    - name: Download Minikube
+      get_url:
+        url: https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+        dest: /usr/local/bin/minikube
+        mode: '0775'
+      become: yes
+    - name: Start Minikube
+      command: minikube start --vm-driver=virtualbox
+    - name: Check deployment status
+      shell: kubectl get deployments | grep cw2
+      register: deploy_status
+      ignore_errors: true
+    - name: Deploy app
+      command: kubectl create deployment cw2 --image=frazzle99/cw2:latest
+      when: deploy_status is failed
+    - name: Scale app
+      command: kubectl scale deployments/cw2 --replicas=4
+      when: deploy_status is failed
+    - name: Create a service and expose ports
+      command: kubectl expose deployment/cw2 --type="NodePort" --port 8080 --name node-port-service
+      when: deploy_status is failed
+    - name: Roll out an update
+      command: kubectl set image deployments/cw2 cw2=frazzle99/cw2:latest
+      when: deploy_status is success
+    - name: Check rollout status
+      command: kubectl rollout status deployment cw2

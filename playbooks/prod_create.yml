@@ -1,0 +1,99 @@
+- name: Create Production VM # Name
+  hosts: localhost
+  user: frazzle
+  connection: local # Script to be executed locally
+  vars: # Variables
+    resourceGroup: cw2-pipeline
+    vmName: cw2prod
+  tasks: # Tasks
+    - stat:
+      path: ~/ansible/azure_rm.py
+      register: azure_rm
+    - name: Download Azure Resource Management
+      get_url:
+        url: https://raw.githubusercontent.com/ansible/ansible/devel/contrib/inventory/azure_rm.py
+        dest: ~/ansible/azure_rm.py
+        mode: '0775'
+      become: yes
+      when: azure_rm.stat.exists == false
+    - name: Generate SSH Key
+      openssh_keypair:
+        path: "{{ ansible_env.HOME }}/.ssh/id_rsa"
+      register: deployKey
+    - name: Create virtual network
+      azure_rm_virtualnetwork:
+        resource_group: "{{ resourceGroup }}"
+        name: "{{ vmName }}-vnet"
+        address_prefixes: "10.0.0.0/24"
+    - name: Add subnet
+      azure_rm_subnet:
+        resource_group: "{{ resourceGroup }}"
+        name: "{{ vmName }}-subnet"
+        address_prefix: "10.0.1.0/24"
+        virtual_network: "{{ vmName }}-vnet"
+    - name: Create public IP address
+      azure_rm_publicipaddress:
+        resource_group: "{{ resourceGroup }}"
+        allocation_method: Static
+        name: "{{ vmName }}-ip"
+      register: output_ip_address
+    - name: Create Network Security Group that allows SSH
+      azure_rm_securitygroup:
+        resource_group: "{{ resourceGroup }}"
+        name: "{{ vmName }}-nsg"
+        rules:
+          - name: SSH
+            protocol: Tcp
+            destination_port_range: 22
+            access: Allow
+            priority: 300
+            direction: Inbound
+          - name: HTTPS
+            protocol: Tcp
+            destination_port_range: 443
+            access: Allow
+            priority: 320
+            direction: Inbound
+          - name: HTTP
+            protocol: Tcp
+            destination_port_range: 80
+            access: Allow
+            priority: 340
+            direction: Inbound
+          - name: Kubernetes
+            protocol: Tcp
+            destination_port_range: 8080
+            access: Allow
+            priority: 360
+            direction: Inbound
+    - name: Create virtual network interface card
+      azure_rm_networkinterface:
+        resource_group: "{{ resourceGroup }}"
+        name: "{{ vmName }}-nic"
+        virtual_network: "{{ vmName }}-vnet"
+        subnet: "{{ vmName }}-subnet"
+        public_ip_name: "{{ vmName }}-ip"
+        security_group: "{{ vmName }}-nsg"
+    - name: Create VM
+      azure_rm_virtualmachine:
+        resource_group: "{{ resourceGroup }}"
+        name: "{{ myVM }}"
+        vm_size: Standard_D2S_v3
+        admin_username: cw2prod
+        ssh_password_enabled: false
+        ssh_public_keys:
+          - path: /home/cw2prod/.ssh/authorized_keys
+            key_data: "{{ deployKey.public_key }}"
+        network_interfaces: "{{ vmName }}-nic"
+        image:
+          offer: UbuntuServer
+          publisher: Canonical
+          sku: '16.04-LTS'
+          version: latest
+    - name: Store public ip locally
+      copy:
+        dest: "{{ ansible_env.HOME }}/prod.txt"
+        content: "{{ output_ip_address.state.ip_address }}"
+    - name: Print Public IP for VM which will be created
+      debug:
+        msg: "The public IP is {{ output_ip_address.state.ip_address }}."
