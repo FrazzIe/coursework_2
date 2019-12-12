@@ -23,7 +23,7 @@ node {
     }
     stage('Build img') {
         echo 'Building docker image'
-        dockerImg = docker.build("cw2:${env.BUILD_ID}") //Build docker img with unique id
+        dockerImg = docker.build("frazzle99/cw2:${env.BUILD_ID}") //Build docker img with unique id
     }
     stage('Publish img') {
         echo 'Publishing image to DockerHub'
