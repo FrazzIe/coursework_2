@@ -6,7 +6,7 @@ node {
     }
     stage('Analyse code') {
         echo 'Starting static code analysis'
-        def scannerHome = tool 'SonarScanner 4.0'; //Get directory of sonar plugin
+        def scannerHome = tool 'SonarQube'; //Get directory of sonar plugin
         withSonarQubeEnv('SonarQube') { //Choose SonarQube server
             sh "${scannerHome}/bin/sonar-scanner" //Select property file
         }
