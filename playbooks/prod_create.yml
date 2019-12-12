@@ -16,27 +16,30 @@
         mode: '0775'
       become: yes
       when: azure_rm.stat.exists == false
-    - name: Generate SSH Key
-      openssh_keypair:
-        path: "{{ ansible_env.HOME }}/.ssh/id_rsa"
-      register: deployKey
-    - name: Create virtual network
-      azure_rm_virtualnetwork:
-        resource_group: "{{ resourceGroup }}"
-        name: "{{ vmName }}-vnet"
-        address_prefixes: "10.0.0.0/24"
-    - name: Add subnet
-      azure_rm_subnet:
-        resource_group: "{{ resourceGroup }}"
-        name: "{{ vmName }}-subnet"
-        address_prefix: "10.0.1.0/24"
-        virtual_network: "{{ vmName }}-vnet"
     - name: Create public IP address
       azure_rm_publicipaddress:
         resource_group: "{{ resourceGroup }}"
         allocation_method: Static
         name: "{{ vmName }}-ip"
       register: output_ip_address
+    - name: Generate SSH Key
+      openssh_keypair:
+        path: "{{ ansible_env.HOME }}/.ssh/id_rsa"
+      register: deployKey
+      when: output_ip_address.changed == true
+    - name: Create virtual network
+      azure_rm_virtualnetwork:
+        resource_group: "{{ resourceGroup }}"
+        name: "{{ vmName }}-vnet"
+        address_prefixes: "10.0.0.0/24"
+      when: output_ip_address.changed == true
+    - name: Add subnet
+      azure_rm_subnet:
+        resource_group: "{{ resourceGroup }}"
+        name: "{{ vmName }}-subnet"
+        address_prefix: "10.0.1.0/24"
+        virtual_network: "{{ vmName }}-vnet"
+      when: output_ip_address.changed == true
     - name: Create Network Security Group that allows SSH
       azure_rm_securitygroup:
         resource_group: "{{ resourceGroup }}"
@@ -66,6 +69,7 @@
             access: Allow
             priority: 360
             direction: Inbound
+      when: output_ip_address.changed == true
     - name: Create virtual network interface card
       azure_rm_networkinterface:
         resource_group: "{{ resourceGroup }}"
@@ -74,6 +78,7 @@
         subnet: "{{ vmName }}-subnet"
         public_ip_name: "{{ vmName }}-ip"
         security_group: "{{ vmName }}-nsg"
+      when: output_ip_address.changed == true
     - name: Create VM
       azure_rm_virtualmachine:
         resource_group: "{{ resourceGroup }}"
@@ -90,6 +95,7 @@
           publisher: Canonical
           sku: '16.04-LTS'
           version: latest
+      when: output_ip_address.changed == true
     - name: Store public ip locally
       copy:
         dest: "{{ ansible_env.HOME }}/prod.txt"
