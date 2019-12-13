@@ -9,7 +9,7 @@ var handleRequest = function(request, response) {
   response.writeHead(200);
   response.write("Hello World! | Running on: ");
   response.write(host);
-  response.end(" | v=1\n");
+  response.end(" | v=2\n");
   console.log("Running On:" ,host, "| Total Requests:", ++requests,"| App Uptime:", (new Date() - startTime)/1000 , "seconds", "| Log Time:",new Date());
 }
 
