@@ -5,6 +5,7 @@
   vars: # Variables
     resourceGroup: cw2-pipeline
     vmName: cw2prod
+    sshKey: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDmklgtwojBv9NKqSW6yU4h6l71dzQhrG1krjDp72d84t1M07YeSQ0kxx5egOWdgLWyWdr71MVe9i8x8zigcXcaEHkFwUVX3MLz1Dop1DrMFKl6lk+YmXmt5u07wRyoehZiX2hJwuuwTh8SYYNyfZc7CaPInpCly8UuIGoPwNPCYpDbjawPFPoaG0pVwvRXeP8j+1OeydO1ioSl3+UYP8tE+RQffGndVsZWklb9etrU0AcfKf5JyXildG4OTZdTgIxBK3dBhz9zYi0N/BXf28Zb4q1lhrRKgbncs79bThjkkilRuj/z97POnYbcmaS5X8lJKCUiLgV3H2ERc2KCWP5L frazzle@cw2builder
   tasks: # Tasks
     - name: Download Azure Resource Management
       get_url:
@@ -18,15 +19,15 @@
         allocation_method: Static
         name: "{{ vmName }}-ip"
       register: output_ip_address
-    - name: Creates ssh key directory
-      file:
-        path: "{{ ansible_env.HOME }}/.ssh/"
-        state: directory
-    - name: Generate SSH Key
-      openssh_keypair:
-        path: "{{ ansible_env.HOME }}/.ssh/id_rsa"
-      register: deployKey
-      when: output_ip_address.changed == true
+#    - name: Creates ssh key directory
+#      file:
+#        path: "{{ ansible_env.HOME }}/.ssh/"
+#        state: directory
+#    - name: Generate SSH Key
+#      openssh_keypair:
+#        path: "{{ ansible_env.HOME }}/.ssh/id_rsa"
+#      register: deployKey
+#      when: output_ip_address.changed == true
     - name: Create virtual network
       azure_rm_virtualnetwork:
         resource_group: "{{ resourceGroup }}"
@@ -88,7 +89,7 @@
         ssh_password_enabled: false
         ssh_public_keys:
           - path: /home/cw2prod/.ssh/authorized_keys
-            key_data: "{{ deployKey.public_key }}"
+            key_data: "{{ sshKey }}"
         network_interfaces: "{{ vmName }}-nic"
         image:
           offer: UbuntuServer
