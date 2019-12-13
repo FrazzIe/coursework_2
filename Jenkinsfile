@@ -33,8 +33,9 @@ node {
         }
     }
     stage('Deploy') {
-        ansiblePlaybook(playbook: "${WORKSPACE}/playbooks/prod_create.yml")
-        //sh "ansible-playbook ${env.WORKSPACE}/playbooks/prod_create.yml"
-        //sh "ansible-playbook -i ~/ansible/azure_rm.py -l cw2prod ${env.WORKSPACE}/playbooks/prod_config.yml"
+        echo 'Deploy Production Machine'
+        ansiblePlaybook(playbook: "${env.WORKSPACE}/playbooks/prod_create.yml")
+        echo 'Configure Production Machine & Deploy App (doesn\'t work)'
+        ansiblePlaybook(playbook: "${env.WORKSPACE}/playbooks/prod_config.yml", inventory: "~/.azure/azure_rm.py", limit: "cw2prod")
     }
 }
