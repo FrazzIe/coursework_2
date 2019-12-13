@@ -34,6 +34,6 @@ node {
     }
     stage('Deploy') {
         ansiblePlaybook(playbook: "${env.WORKSPACE}/playbooks/prod_create.yml")
-        ansiblePlaybook(playbook: "${env.WORKSPACE}/playbooks/prod_config.yml", inventory: "~/azure_rm.py", limit: "cw2prod")
+        ansiblePlaybook(playbook: "${env.WORKSPACE}/playbooks/prod_config.yml", inventory: "~/.azure/azure_rm.py", limit: "cw2prod")
     }
 }
