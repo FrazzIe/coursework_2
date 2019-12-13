@@ -83,7 +83,7 @@
       azure_rm_virtualmachine:
         resource_group: "{{ resourceGroup }}"
         name: "{{ vmName }}"
-        vm_size: Standard_D2S_v3
+        vm_size: Standard_D2s_v3
         admin_username: cw2prod
         ssh_password_enabled: false
         ssh_public_keys:
