@@ -50,7 +50,7 @@
       command: kubectl expose deployment/cw2 --type="NodePort" --port 8080 --name node-port-service
       when: deploy_status is failed
     - name: Roll out an update
-      command: kubectl set image deployments/cw2 cw2=frazzle99/cw2:latest
+      command: kubectl rollout restart deployment/cw2
       when: deploy_status is success
     - name: Check rollout status
       command: kubectl rollout status deployment cw2
